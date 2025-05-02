@@ -1,0 +1,40 @@
+{
+  "name": "csp-generator",
+  "private": false,
+  "version": "0.1.0",
+  "description": "A Bun package to generate Content Security Policy (CSP) headers.",
+  "scripts": {
+    "build": "bun build index.ts --outdir=dist --minify",
+    "test": "bun test",
+    "lint": "bun run eslint .",
+    "format": "bun run prettier --write src/. test/."
+  },
+  "author": "Rolando Santamaria Maso <kyberneees@gmail.com>",
+  "keywords": [
+    "bun",
+    "bunjs",
+    "csp",
+    "content-security-policy",
+    "generator",
+    "typescript"
+  ],
+  "bin": "csp-generator.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/content-type": "^1.1.8",
+    "@types/jsdom": "^21.1.7",
+    "prettier": "^3.5.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "content-type": "^1.0.5",
+    "jsdom": "^26.1.0"
+  },
+  "bugs": {
+    "url": "https://github.com/BackendStack21/idempotence-middleware/issues"
+  },
+  "homepage": "https://github.com/BackendStack21/idempotence-middleware#readme"
+}
