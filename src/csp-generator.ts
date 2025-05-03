@@ -30,95 +30,10 @@
  */
 
 import {JSDOM} from 'jsdom'
-import {parse as parseContentType} from 'content-type'
 import {createHash} from 'crypto'
 import {isIP} from 'net'
 import dns from 'dns/promises'
-
-/**
- * Supported CSP directive names for configuration and output.
- */
-export type DirectiveName =
-  | 'default-src'
-  | 'script-src'
-  | 'style-src'
-  | 'img-src'
-  | 'font-src'
-  | 'connect-src'
-  | 'frame-src'
-  | 'object-src'
-  | 'base-uri'
-  | 'form-action'
-  | 'frame-ancestors'
-  | 'media-src'
-  | 'worker-src'
-  | 'manifest-src'
-  | 'report-uri'
-  | 'report-to'
-  | 'upgrade-insecure-requests'
-  | 'block-all-mixed-content'
-  | 'require-trusted-types-for'
-
-/**
- * Configuration options for SecureCSPGenerator.
- */
-export interface SecureCSPGeneratorOptions {
-  /**
-   * User-provided source lists to initialize specific directives.
-   * Example: { 'connect-src': ['https://api.example.com'] }
-   */
-  presets?: Partial<Record<DirectiveName, readonly string[]>>
-
-  /**
-   * Allow HTTP URLs in addition to HTTPS (default: false => HTTPS-only).
-   */
-  allowHttp?: boolean
-
-  /**
-   * Permit private IP / localhost origins (default: false => blocked).
-   */
-  allowPrivateOrigins?: boolean
-
-  /**
-   * If true, adds 'unsafe-inline' to 'script-src' when inline scripts detected
-   */
-  allowUnsafeInlineScript?: boolean
-
-  /**
-   * If true, adds 'unsafe-inline' to 'style-src' when inline styles detected
-   */
-  allowUnsafeInlineStyle?: boolean
-
-  /**
-   * If true, adds 'unsafe-eval' to 'script-src' (overrides hash-based safety)
-   */
-  allowUnsafeEval?: boolean
-
-  /**
-   * Maximum allowed bytes for HTML download. 0 = unlimited (default: 0).
-   */
-  maxBodySize?: number
-
-  /**
-   * Options to forward to fetch (headers, credentials, etc.).
-   */
-  fetchOptions?: RequestInit
-
-  /**
-   * Milliseconds before aborting a slow response (default: 8000).
-   */
-  timeoutMs?: number
-
-  /**
-   * A logger implementing error, warn, info, debug (default: console).
-   */
-  logger?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>
-
-  /**
-   * If true, adds "require-trusted-types-for 'script'" to the CSP.
-   */
-  requireTrustedTypes?: boolean
-}
+import type {DirectiveName, Logger, SecureCSPGeneratorOptions} from './types.ts'
 
 /**
  * SecureCSPGenerator:
@@ -128,12 +43,10 @@ export interface SecureCSPGeneratorOptions {
 export class SecureCSPGenerator {
   /** The target URL to analyze. */
   readonly url: URL
-
-  private readonly opts: Required<SecureCSPGeneratorOptions>
-  private readonly logger: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>
+  private readonly opts: Partial<SecureCSPGeneratorOptions>
+  private readonly logger: Logger
   private html: string = ''
   private readonly sources = new Map<DirectiveName, Set<string>>()
-
   private detectedInlineScript = false
   private detectedInlineStyle = false
   private detectedEval = false
@@ -210,7 +123,7 @@ export class SecureCSPGenerator {
     const response = await fetch(this.url, {
       ...fetchOptions,
       signal: ac.signal,
-      headers: {accept: 'text/html', ...fetchOptions.headers},
+      headers: {accept: 'text/html', ...(fetchOptions?.headers ?? {})},
     }).finally(() => clearTimeout(timer))
 
     if (!response.ok) {
