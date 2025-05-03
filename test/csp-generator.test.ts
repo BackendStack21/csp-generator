@@ -1,4 +1,4 @@
-import {describe, test, expect, beforeEach, mock, afterEach} from 'bun:test'
+import {afterEach, beforeEach, describe, expect, mock, test} from 'bun:test'
 import {SecureCSPGenerator} from '../src/csp-generator'
 import dns from 'dns/promises'
 
@@ -17,8 +17,6 @@ const fetchMock = mock(async () => {
   return mockFetchResponse
 }) as unknown as typeof fetch
 
-global.fetch = fetchMock
-
 // Store original DNS lookup function
 const originalLookup = dns.lookup
 // Create a mock DNS lookup function
@@ -27,7 +25,7 @@ let dnsResults: Array<{address: string; family: number}> = [
 ]
 
 // Override the DNS lookup function
-dns.lookup = async (...args: any[]) => {
+const mockDnsLookup = async (...args: any[]) => {
   return dnsResults as any
 }
 
@@ -37,6 +35,8 @@ describe('SecureCSPGenerator', () => {
   beforeEach(() => {
     // Reset mock fetch response
     mockFetchResponse = null
+    global.fetch = fetchMock
+    dns.lookup = mockDnsLookup
 
     // Reset DNS results to default public IP
     dnsResults = [{address: '8.8.8.8', family: 4}]
@@ -53,9 +53,8 @@ describe('SecureCSPGenerator', () => {
   afterEach(() => {
     // Clean up mocks
     mock.restore()
-
-    // Restore original fetch if needed
-    global.fetch = fetchMock
+    global.fetch = originalFetch
+    dns.lookup = originalLookup
   })
 
   describe('constructor', () => {
@@ -110,6 +109,75 @@ describe('SecureCSPGenerator', () => {
       expect(cspHeader).toContain('https://example.com')
     })
 
+    describe('timeout handling', () => {
+      let originalSetTimeout: typeof global.setTimeout
+      let originalClearTimeout: typeof global.clearTimeout
+      let setTimeoutSpy: ReturnType<typeof mock>
+      let clearTimeoutSpy: ReturnType<typeof mock>
+
+      beforeEach(() => {
+        originalSetTimeout = global.setTimeout
+        originalClearTimeout = global.clearTimeout
+        setTimeoutSpy = mock((fn: Function, ms: number) =>
+          originalSetTimeout(fn, ms),
+        )
+        clearTimeoutSpy = mock((id?: number) => originalClearTimeout(id))
+        global.setTimeout = Object.assign(setTimeoutSpy, {
+          __promisify__: () => Promise.resolve(123),
+        }) as unknown as typeof setTimeout
+        global.clearTimeout = clearTimeoutSpy as unknown as typeof clearTimeout
+      })
+
+      afterEach(() => {
+        // Restore original functions
+        global.setTimeout = originalSetTimeout
+        global.clearTimeout = originalClearTimeout
+      })
+
+      test('should clear timeout when fetch throws an error', async () => {
+        const fetchError = new Error('Network error')
+        global.fetch = mock(async () => {
+          await Promise.resolve() // Make it asynchronous
+          throw fetchError
+        }) as unknown as typeof fetch
+
+        const generator = new SecureCSPGenerator('https://example.com')
+
+        await expect(generator.generate()).rejects.toThrow('Network error')
+        expect(clearTimeoutSpy).toHaveBeenCalled()
+      })
+
+      test('should respect timeout and cleanup properly', async () => {
+        // Mock fetch to simulate a slow response that respects AbortController
+        global.fetch = mock(async (url: string, init?: RequestInit) => {
+          const abortSignal = init?.signal
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              resolve(undefined)
+            }, 100)
+
+            if (abortSignal) {
+              abortSignal.addEventListener('abort', () => {
+                clearTimeout(timeout)
+                reject(new Error('The operation was aborted'))
+              })
+            }
+          })
+          return new Response()
+        }) as unknown as typeof fetch
+
+        const generator = new SecureCSPGenerator('https://example.com', {
+          timeoutMs: 50, // Set a short timeout
+        })
+
+        await expect(generator.generate()).rejects.toThrow(
+          'The operation was aborted',
+        )
+        expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 50)
+        expect(clearTimeoutSpy).toHaveBeenCalled()
+      })
+    })
+
     test('should throw error on non-200 response', async () => {
       mockFetchResponse = new Response('Not Found', {
         status: 404,
@@ -134,14 +202,6 @@ describe('SecureCSPGenerator', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Expected HTML but got'),
       )
-    })
-
-    // Note: This test is skipped because it's difficult to reliably test timeouts
-    // in a unit test environment without modifying the source code.
-    test.skip('should respect timeout option', async () => {
-      // In a real implementation, we would test that the AbortController
-      // is properly set up with the timeout and that it aborts the fetch
-      // when the timeout is reached.
     })
 
     test('should respect maxBodySize option', async () => {
