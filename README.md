@@ -148,11 +148,6 @@ You can also use the CSP generator directly in your browser:
   // Generate CSP for a URL
   const result = await generator.generate('https://example.com');
   console.log(result);
-
-  // Or analyze HTML content directly
-  const htmlContent = document.documentElement.outerHTML;
-  const result = await generator.analyze(htmlContent);
-  console.log(result);
 </script>
 ```
 

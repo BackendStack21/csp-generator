@@ -85,7 +85,7 @@ export interface SecureCSPGeneratorOptions {
   /**
    * Options to forward to fetch (headers, credentials, etc.).
    */
-  fetchOptions?: RequestInit
+  fetchOptions?: Partial<RequestInit>
 
   /**
    * Milliseconds before aborting a slow response (default: 8000).

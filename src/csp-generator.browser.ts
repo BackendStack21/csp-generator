@@ -5,7 +5,7 @@
  *   This version uses native browser APIs and omits Node.js-specific features.
  */
 
-import type {DirectiveName, Logger, CSPPresets, SecureCSPGeneratorOptions} from './types'
+import type {DirectiveName, Logger, SecureCSPGeneratorOptions} from './types'
 
 /**
  * SecureCSPGenerator:

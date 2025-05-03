@@ -61,7 +61,7 @@ describe('SecureCSPGenerator (browser)', () => {
     mock.restore()
 
     // Restore original fetch if needed
-    global.fetch = fetchMock
+    global.fetch = originalFetch
   })
 
   describe('constructor', () => {
