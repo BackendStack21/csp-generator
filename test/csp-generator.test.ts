@@ -1,4 +1,4 @@
-import {describe, test, expect, beforeEach, mock, afterEach} from 'bun:test'
+import {afterEach, beforeEach, describe, expect, mock, test} from 'bun:test'
 import {SecureCSPGenerator} from '../src/csp-generator'
 import dns from 'dns/promises'
 
@@ -17,8 +17,6 @@ const fetchMock = mock(async () => {
   return mockFetchResponse
 }) as unknown as typeof fetch
 
-global.fetch = fetchMock
-
 // Store original DNS lookup function
 const originalLookup = dns.lookup
 // Create a mock DNS lookup function
@@ -27,7 +25,7 @@ let dnsResults: Array<{address: string; family: number}> = [
 ]
 
 // Override the DNS lookup function
-dns.lookup = async (...args: any[]) => {
+const mockDnsLookup = async (...args: any[]) => {
   return dnsResults as any
 }
 
@@ -37,6 +35,8 @@ describe('SecureCSPGenerator', () => {
   beforeEach(() => {
     // Reset mock fetch response
     mockFetchResponse = null
+    global.fetch = fetchMock
+    dns.lookup = mockDnsLookup
 
     // Reset DNS results to default public IP
     dnsResults = [{address: '8.8.8.8', family: 4}]
@@ -53,9 +53,7 @@ describe('SecureCSPGenerator', () => {
   afterEach(() => {
     // Clean up mocks
     mock.restore()
-
-    // Restore original fetch and DNS lookup
-    global.fetch = fetchMock
+    global.fetch = originalFetch
     dns.lookup = originalLookup
   })
 
