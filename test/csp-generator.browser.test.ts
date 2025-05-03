@@ -17,8 +17,6 @@ const fetchMock = mock(async () => {
   return mockFetchResponse
 }) as unknown as typeof fetch
 
-global.fetch = fetchMock
-
 describe('SecureCSPGenerator (browser)', () => {
   let mockLogger: any
   let dom: JSDOM
@@ -26,6 +24,7 @@ describe('SecureCSPGenerator (browser)', () => {
   beforeEach(() => {
     // Reset mock fetch response
     mockFetchResponse = null
+    global.fetch = fetchMock
 
     // Setup jsdom with a base URL
     dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

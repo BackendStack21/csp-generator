@@ -141,6 +141,4 @@ export interface SecureCSPGeneratorOptions {
    * If true, adds sandbox directive with common permissions
    */
   useSandbox?: boolean
-
-  headers?: Record<string, string>
 }
