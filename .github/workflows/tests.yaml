@@ -16,7 +16,7 @@ jobs:
         run: bun install
 
       - name: Linting
-        run: bun run format
+        run: bun run lint
 
       - name: Run tests
         run: bun run test
