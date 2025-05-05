@@ -31,7 +31,7 @@
     "build:browser": "bun build ./src/csp-generator.browser.ts --outdir ./dist --target browser --minify --outfile csp-generator.browser.js --format esm",
     "prepublishOnly": "bun run build",
     "test": "bun test",
-    "lint": "bun run eslint .",
+    "lint": "prettier  --write src/. test/.",
     "format": "bun run prettier --write src/. test/."
   },
   "author": "Rolando Santamaria Maso <kyberneees@gmail.com>",

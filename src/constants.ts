@@ -29,4 +29,4 @@ export const VALID_CSP_DIRECTIVES = [
   'require-trusted-types-for',
 ] as const
 
-export type CSPDirective = typeof VALID_CSP_DIRECTIVES[number] 
+export type CSPDirective = (typeof VALID_CSP_DIRECTIVES)[number]

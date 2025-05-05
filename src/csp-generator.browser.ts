@@ -113,7 +113,9 @@ export class SecureCSPGenerator {
   private generateNonce(): string {
     const array = new Uint8Array(16)
     crypto.getRandomValues(array)
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+      '',
+    )
   }
 
   private async generateHash(content: string): Promise<string> {
@@ -121,7 +123,9 @@ export class SecureCSPGenerator {
     const data = encoder.encode(content)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
     return `'sha256-${hashHex}'`
   }
 
@@ -201,7 +205,10 @@ export class SecureCSPGenerator {
         this.detectedInlineStyle = true
         await this.extractCssUrls(style.textContent, 'style-src')
         // Extract font sources from @font-face rules
-        const fontUrls = style.textContent.match(/@font-face\s*{[^}]*src:\s*url\(['"]?([^'")\s]+)['"]?\)/gi) || []
+        const fontUrls =
+          style.textContent.match(
+            /@font-face\s*{[^}]*src:\s*url\(['"]?([^'")\s]+)['"]?\)/gi,
+          ) || []
         for (const fontUrl of fontUrls) {
           const url = fontUrl.match(/url\(['"]?([^'")\s]+)['"]?\)/)?.[1]
           if (url) {
@@ -286,8 +293,13 @@ export class SecureCSPGenerator {
       if (script.textContent) {
         const content = script.textContent
         // Look for fetch, WebSocket, EventSource, etc.
-        if (content.includes('fetch(') || content.includes('new WebSocket(') || content.includes('new EventSource(')) {
-          const urls = content.match(/['"](https?:\/\/[^'"]+|wss?:\/\/[^'"]+)['"]/g) || []
+        if (
+          content.includes('fetch(') ||
+          content.includes('new WebSocket(') ||
+          content.includes('new EventSource(')
+        ) {
+          const urls =
+            content.match(/['"](https?:\/\/[^'"]+|wss?:\/\/[^'"]+)['"]/g) || []
           for (const url of urls) {
             const cleanUrl = url.replace(/['"]/g, '')
             this.ensureSet('connect-src').add(cleanUrl)
@@ -318,7 +330,9 @@ export class SecureCSPGenerator {
     }
 
     if (this.opts.useSandbox) {
-      this.ensureSet('sandbox').add('allow-scripts allow-same-origin allow-forms allow-popups')
+      this.ensureSet('sandbox').add(
+        'allow-scripts allow-same-origin allow-forms allow-popups',
+      )
     }
 
     // Heuristic eval detection
@@ -387,12 +401,15 @@ export class SecureCSPGenerator {
 
     // Add sandbox if enabled
     if (this.opts.useSandbox) {
-      this.sources.set('sandbox', new Set([
-        'allow-scripts',
-        'allow-same-origin',
-        'allow-forms',
-        'allow-popups'
-      ]))
+      this.sources.set(
+        'sandbox',
+        new Set([
+          'allow-scripts',
+          'allow-same-origin',
+          'allow-forms',
+          'allow-popups',
+        ]),
+      )
     }
 
     // Enforce mixed-content safety directives
@@ -423,4 +440,4 @@ export class SecureCSPGenerator {
 
     return parts.join('; ')
   }
-} 
+}

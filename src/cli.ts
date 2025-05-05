@@ -40,7 +40,10 @@ export function parseFetchOptions(
   }
 }
 
-export function formatOutput(csp: string, options: SecureCSPGeneratorOptions): string {
+export function formatOutput(
+  csp: string,
+  options: SecureCSPGeneratorOptions,
+): string {
   switch (options.outputFormat) {
     case 'json':
       return JSON.stringify({'Content-Security-Policy': csp}, null, 2)
