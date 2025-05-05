@@ -53,6 +53,7 @@ describe('SecureCSPGenerator', () => {
   afterEach(() => {
     // Clean up mocks
     mock.restore()
+
     global.fetch = originalFetch
     dns.lookup = originalLookup
   })
