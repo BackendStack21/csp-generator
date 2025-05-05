@@ -32,7 +32,7 @@ describe('SecureCSPGenerator (browser)', () => {
       contentType: 'text/html',
       includeNodeLocations: true,
       runScripts: 'dangerously',
-      resources: 'usable'
+      resources: 'usable',
     })
 
     // Setup global browser APIs
@@ -480,7 +480,9 @@ describe('SecureCSPGenerator (browser)', () => {
         useSandbox: true,
       })
       const cspHeader = await generator.generate()
-      expect(cspHeader).toContain('sandbox allow-scripts allow-same-origin allow-forms allow-popups')
+      expect(cspHeader).toContain(
+        'sandbox allow-scripts allow-same-origin allow-forms allow-popups',
+      )
     })
   })
-}) 
+})

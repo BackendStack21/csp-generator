@@ -31,7 +31,7 @@ export function parsePresets(
 
 export function parseFetchOptions(
   value: string | undefined,
-): Record<string, any> {
+): Record<string, unknown> {
   if (!value) return {}
   try {
     return JSON.parse(value)
@@ -40,7 +40,10 @@ export function parseFetchOptions(
   }
 }
 
-export function formatOutput(csp: string, options: SecureCSPGeneratorOptions): string {
+export function formatOutput(
+  csp: string,
+  options: SecureCSPGeneratorOptions,
+): string {
   switch (options.outputFormat) {
     case 'json':
       return JSON.stringify({'Content-Security-Policy': csp}, null, 2)
@@ -197,8 +200,11 @@ export async function main() {
 
     const csp = await generator.generate()
     console.log(formatOutput(csp, options))
-  } catch (error: any) {
-    console.error('Error:', error)
+  } catch (error) {
+    console.error(
+      'Error:',
+      error instanceof Error ? error.message : String(error),
+    )
     process.exit(1)
   }
 }

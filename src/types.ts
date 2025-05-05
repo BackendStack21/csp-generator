@@ -31,7 +31,8 @@ export type DirectiveName =
 /**
  * Shared logger interface that can be used by both CLI and SecureCSPGenerator.
  */
-export interface Logger extends Pick<Console, 'error' | 'warn' | 'info' | 'debug'> {}
+export interface Logger
+  extends Pick<Console, 'error' | 'warn' | 'info' | 'debug'> {}
 
 /**
  * Shared presets type that can be used by both CLI and SecureCSPGenerator.
@@ -45,7 +46,7 @@ export interface SecureCSPGeneratorOptions {
   /**
    * The URL to analyze and generate a CSP for.
    */
-  url?: string;
+  url?: string
   /**
    * User-provided source lists to initialize specific directives.
    * Example: { 'connect-src': ['https://api.example.com'] }
