@@ -91,6 +91,15 @@ export function getOptions(): SecureCSPGeneratorOptions {
 
   const finalUrl = positionals[0] || process.env.CSP_URL || ''
 
+  // Validate URL format
+  if (finalUrl) {
+    try {
+      new URL(finalUrl)
+    } catch {
+      throw new Error('Invalid URL format')
+    }
+  }
+
   const parseBoolean = (
     value: string | undefined,
     envVar: string | undefined,
@@ -108,6 +117,13 @@ export function getOptions(): SecureCSPGeneratorOptions {
     if (!val) return defaultValue
     const num = parseInt(val, 10)
     return isNaN(num) ? defaultValue : num
+  }
+
+  // Validate format value
+  const validFormats = ['header', 'raw', 'json', 'csp-only']
+  const outputFormat = format || process.env.CSP_OUTPUT_FORMAT || 'header'
+  if (!validFormats.includes(outputFormat)) {
+    console.warn(`Invalid format "${outputFormat}", defaulting to "header"`)
   }
 
   return {
@@ -139,52 +155,52 @@ export function getOptions(): SecureCSPGeneratorOptions {
     fetchOptions: parseFetchOptions(
       fetchOptions || process.env.CSP_FETCH_OPTIONS,
     ),
-    outputFormat: (format ||
-      process.env.CSP_OUTPUT_FORMAT ||
-      'header') as SecureCSPGeneratorOptions['outputFormat'],
+    outputFormat: (validFormats.includes(outputFormat)
+      ? outputFormat
+      : 'header') as SecureCSPGeneratorOptions['outputFormat'],
   }
 }
 
 export async function main() {
-  const options = getOptions()
-
-  if (!options.url) {
-    console.error('Usage: csp-generator <url> [options]')
-    console.error('\nOptions:')
-    console.error(
-      '  --allow-http <true|false>       Allow HTTP URLs in addition to HTTPS',
-    )
-    console.error(
-      '  --allow-private-origins <true|false>  Permit private IP / localhost origins',
-    )
-    console.error(
-      '  --allow-unsafe-inline-script <true|false>  Add unsafe-inline to script-src',
-    )
-    console.error(
-      '  --allow-unsafe-inline-style <true|false>  Add unsafe-inline to style-src',
-    )
-    console.error(
-      '  --allow-unsafe-eval <true|false>  Add unsafe-eval to script-src',
-    )
-    console.error(
-      '  --require-trusted-types <true|false>  Add require-trusted-types-for script',
-    )
-    console.error(
-      '  --max-body-size <bytes>        Maximum allowed bytes for HTML download',
-    )
-    console.error('  --timeout-ms <milliseconds>    Timeout for fetch requests')
-    console.error('  --presets <presets>            User-provided source lists')
-    console.error(
-      '  --fetch-options <json>         Options to forward to fetch',
-    )
-    console.error(
-      '  --format, -f <format>          Output format (header, raw, json, csp-only)',
-    )
-    console.error('\nExample: csp-generator https://example.com --format json')
-    process.exit(1)
-  }
-
   try {
+    const options = getOptions()
+
+    if (!options.url) {
+      console.error('Usage: csp-generator <url> [options]')
+      console.error('\nOptions:')
+      console.error(
+        '  --allow-http <true|false>       Allow HTTP URLs in addition to HTTPS',
+      )
+      console.error(
+        '  --allow-private-origins <true|false>  Permit private IP / localhost origins',
+      )
+      console.error(
+        '  --allow-unsafe-inline-script <true|false>  Add unsafe-inline to script-src',
+      )
+      console.error(
+        '  --allow-unsafe-inline-style <true|false>  Add unsafe-inline to style-src',
+      )
+      console.error(
+        '  --allow-unsafe-eval <true|false>  Add unsafe-eval to script-src',
+      )
+      console.error(
+        '  --require-trusted-types <true|false>  Add require-trusted-types-for script',
+      )
+      console.error(
+        '  --max-body-size <bytes>        Maximum allowed bytes for HTML download',
+      )
+      console.error('  --timeout-ms <milliseconds>    Timeout for fetch requests')
+      console.error('  --presets <presets>            User-provided source lists')
+      console.error(
+        '  --fetch-options <json>         Options to forward to fetch',
+      )
+      console.error(
+        '  --format, -f <format>          Output format (header, raw, json, csp-only)',
+      )
+      console.error('\nExample: csp-generator https://example.com --format json')
+      process.exit(1)
+    }
+
     const generator = new SecureCSPGenerator(options.url, {
       allowHttp: options.allowHttp,
       allowPrivateOrigins: options.allowPrivateOrigins,
@@ -201,7 +217,7 @@ export async function main() {
     const csp = await generator.generate()
     console.log(formatOutput(csp, options))
   } catch (error: any) {
-    console.error('Error:', error)
+    console.error('Error:', error.message || error)
     process.exit(1)
   }
 }

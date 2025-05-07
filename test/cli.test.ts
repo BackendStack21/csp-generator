@@ -128,6 +128,29 @@ describe('CLI', () => {
       })
       expect(values.format).toBe('json')
     })
+
+    test('should handle invalid format values', () => {
+      process.argv = [
+        'node',
+        'cli.ts',
+        'https://example.com',
+        '--format',
+        'invalid-format',
+      ]
+      const options = getOptions()
+      expect(options.outputFormat).toBe('header') // Should default to header
+    })
+
+    test('should handle short format flag', () => {
+      process.argv = ['node', 'cli.ts', 'https://example.com', '-f', 'json']
+      const {values} = parseArgs({
+        options: {
+          format: {type: 'string', short: 'f'},
+        },
+        allowPositionals: true,
+      })
+      expect(values.format).toBe('json')
+    })
   })
 
   describe('parsePresets', () => {
@@ -168,6 +191,14 @@ describe('CLI', () => {
         'style-src': Object.freeze(['styles.com']),
       })
     })
+
+    test('should handle empty values in presets', () => {
+      const presets = 'script-src:;style-src:value'
+      const result = parsePresets(presets)
+      expect(result).toEqual({
+        'style-src': Object.freeze(['value']),
+      })
+    })
   })
 
   describe('parseFetchOptions', () => {
@@ -187,6 +218,18 @@ describe('CLI', () => {
 
     test('should handle undefined options', () => {
       const result = parseFetchOptions(undefined)
+      expect(result).toEqual({})
+    })
+
+    test('should handle empty JSON object', () => {
+      const options = '{}'
+      const result = parseFetchOptions(options)
+      expect(result).toEqual({})
+    })
+
+    test('should handle malformed JSON with trailing comma', () => {
+      const options = '{"headers":{"User-Agent":"test"},}'
+      const result = parseFetchOptions(options)
       expect(result).toEqual({})
     })
   })
@@ -227,6 +270,11 @@ describe('CLI', () => {
       expect(result).toBe(
         "Content-Security-Policy: default-src 'self'; object-src 'none'",
       )
+    })
+
+    test('should handle empty CSP string', () => {
+      const result = formatOutput('', {outputFormat: 'header'} as any)
+      expect(result).toBe('Content-Security-Policy: ')
     })
   })
 
@@ -282,6 +330,27 @@ describe('CLI', () => {
         'script-src': Object.freeze(['cli-example.com']),
       })
     })
+
+    test('should handle invalid environment variable values', () => {
+      process.env.CSP_URL = 'https://example.com'
+      process.env.CSP_MAX_BODY_SIZE = 'invalid'
+      process.env.CSP_TIMEOUT_MS = 'not-a-number'
+
+      const options = getOptions()
+      expect(options.maxBodySize).toBe(0) // Default value
+      expect(options.timeoutMs).toBe(8000) // Default value
+    })
+
+    test('should handle empty environment variables', () => {
+      process.env.CSP_URL = ''
+      process.env.CSP_ALLOW_HTTP = ''
+      process.env.CSP_PRESETS = ''
+
+      const options = getOptions()
+      expect(options.url).toBe('')
+      expect(options.allowHttp).toBe(false)
+      expect(options.presets).toEqual({})
+    })
   })
 
   describe('main', () => {
@@ -292,7 +361,7 @@ describe('CLI', () => {
       await main()
 
       expect(processExitCalls).toEqual([1])
-      expect(mockConsoleError).toHaveBeenCalledTimes(14) // Help text has 14 lines including usage and options
+      expect(mockConsoleError).toHaveBeenCalledTimes(14) // Help text has 14 lines
     })
 
     test('should handle successful CSP generation', async () => {
@@ -322,10 +391,7 @@ describe('CLI', () => {
       await main()
 
       expect(processExitCalls).toEqual([1])
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        'Error:',
-        new Error('Test error'),
-      )
+      expect(mockConsoleError).toHaveBeenCalledWith('Error:', 'Test error')
     })
 
     test('should respect output format from CLI args', async () => {
@@ -348,6 +414,52 @@ describe('CLI', () => {
           null,
           2,
         ),
+      )
+    })
+
+    test('should handle invalid URL format', async () => {
+      process.argv = ['node', 'cli.ts', 'not-a-url']
+      process.env = {}
+
+      await main()
+
+      expect(processExitCalls).toEqual([1])
+      expect(mockConsoleError).toHaveBeenCalledWith('Error:', 'Invalid URL format')
+    })
+
+    test('should handle network errors', async () => {
+      process.argv = ['node', 'cli.ts', 'https://example.com']
+      process.env = {}
+
+      // Mock generator to throw network error
+      mockGenerate.mockImplementationOnce(() => {
+        throw new Error('Network error: Failed to fetch')
+      })
+
+      await main()
+
+      expect(processExitCalls).toEqual([1])
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error:',
+        'Network error: Failed to fetch',
+      )
+    })
+
+    test('should handle timeout errors', async () => {
+      process.argv = ['node', 'cli.ts', 'https://example.com']
+      process.env = {}
+
+      // Mock generator to throw timeout error
+      mockGenerate.mockImplementationOnce(() => {
+        throw new Error('Timeout: Request took too long')
+      })
+
+      await main()
+
+      expect(processExitCalls).toEqual([1])
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error:',
+        'Timeout: Request took too long',
       )
     })
   })
