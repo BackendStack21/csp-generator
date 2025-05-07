@@ -297,7 +297,7 @@ describe('CLI', () => {
         allowUnsafeInlineScript: false,
         allowUnsafeInlineStyle: false,
         allowUnsafeEval: false,
-        requireTrustedTypes: false,
+        requireTrustedTypes: true,
         maxBodySize: 1024,
         timeoutMs: 5000,
         presets: {

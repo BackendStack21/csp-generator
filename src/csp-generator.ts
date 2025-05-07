@@ -279,6 +279,20 @@ export class SecureCSPGenerator {
       await this.extractCssUrls(styleEl.textContent || '', 'style-src')
     }
 
+    // Extract base URI
+    let baseUriSet = false
+    const baseEl = doc.querySelector('base[href]')
+    if (baseEl) {
+      const baseHref = baseEl.getAttribute('href')
+      if (baseHref) {
+        await this.resolveAndAdd('base-uri', baseHref)
+        baseUriSet = true
+      }
+    }
+    if (!baseUriSet) {
+      this.ensureSet('base-uri').add("'self'")
+    }
+
     // Inline scripts hashing and nonce/integrity reuse
     for (const scr of Array.from(doc.querySelectorAll('script'))) {
       if (scr.hasAttribute('src')) continue
@@ -340,6 +354,12 @@ export class SecureCSPGenerator {
     if (this.nonce) {
       this.ensureSet('script-src').add(`'nonce-${this.nonce}'`)
       this.ensureSet('script-src').add("'strict-dynamic'")
+    }
+
+    // Always add 'unsafe-inline' if 'strict-dynamic' is present (for backward compatibility)
+    const scriptSrc = this.sources.get('script-src')
+    if (scriptSrc && scriptSrc.has("'strict-dynamic'")) {
+      scriptSrc.add("'unsafe-inline'")
     }
 
     // Conditionally allow unsafe directives

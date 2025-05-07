@@ -101,11 +101,21 @@ export function getOptions(): SecureCSPGeneratorOptions {
   }
 
   const parseBoolean = (
-    value: string | undefined,
-    envVar: string | undefined,
+    value: string | boolean | undefined,
+    envVar: string | boolean | undefined,
+    defaultValue: boolean = false,
   ) => {
-    if (value !== undefined) return value === 'true'
-    return envVar === 'true'
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+      if (value.trim() === '') return defaultValue
+      return value === 'true'
+    }
+    if (typeof envVar === 'boolean') return envVar
+    if (typeof envVar === 'string') {
+      if (envVar.trim() === '') return defaultValue
+      return envVar === 'true'
+    }
+    return defaultValue
   }
 
   const parseNumber = (
@@ -148,6 +158,7 @@ export function getOptions(): SecureCSPGeneratorOptions {
     requireTrustedTypes: parseBoolean(
       requireTrustedTypes,
       process.env.CSP_REQUIRE_TRUSTED_TYPES,
+      true
     ),
     maxBodySize: parseNumber(maxBodySize, process.env.CSP_MAX_BODY_SIZE, 0),
     timeoutMs: parseNumber(timeoutMs, process.env.CSP_TIMEOUT_MS, 8000),
