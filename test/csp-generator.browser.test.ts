@@ -315,14 +315,18 @@ describe('SecureCSPGenerator (browser)', () => {
     test('should handle fetch timeout', async () => {
       // Override fetch to simulate timeout
       global.fetch = mock(async () => {
-        await new Promise((_, reject) => setTimeout(() => reject(new Error('The operation was aborted')), 200))
+        await new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('The operation was aborted')), 200),
+        )
       }) as unknown as typeof fetch
 
       const generator = new SecureCSPGenerator('https://example.com', {
         timeoutMs: 100,
       })
 
-      await expect(generator.generate()).rejects.toThrow('The operation was aborted')
+      await expect(generator.generate()).rejects.toThrow(
+        'The operation was aborted',
+      )
     })
 
     test('should handle invalid content-type', async () => {
@@ -336,7 +340,9 @@ describe('SecureCSPGenerator (browser)', () => {
       })
       await generator.generate()
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('Expected HTML but got application/json')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Expected HTML but got application/json',
+      )
     })
 
     test('should handle preload and prefetch links', async () => {

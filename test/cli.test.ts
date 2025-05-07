@@ -424,7 +424,10 @@ describe('CLI', () => {
       await main()
 
       expect(processExitCalls).toEqual([1])
-      expect(mockConsoleError).toHaveBeenCalledWith('Error:', 'Invalid URL format')
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error:',
+        'Invalid URL format',
+      )
     })
 
     test('should handle network errors', async () => {

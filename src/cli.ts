@@ -158,7 +158,7 @@ export function getOptions(): SecureCSPGeneratorOptions {
     requireTrustedTypes: parseBoolean(
       requireTrustedTypes,
       process.env.CSP_REQUIRE_TRUSTED_TYPES,
-      true
+      true,
     ),
     maxBodySize: parseNumber(maxBodySize, process.env.CSP_MAX_BODY_SIZE, 0),
     timeoutMs: parseNumber(timeoutMs, process.env.CSP_TIMEOUT_MS, 8000),
@@ -200,15 +200,21 @@ export async function main() {
       console.error(
         '  --max-body-size <bytes>        Maximum allowed bytes for HTML download',
       )
-      console.error('  --timeout-ms <milliseconds>    Timeout for fetch requests')
-      console.error('  --presets <presets>            User-provided source lists')
+      console.error(
+        '  --timeout-ms <milliseconds>    Timeout for fetch requests',
+      )
+      console.error(
+        '  --presets <presets>            User-provided source lists',
+      )
       console.error(
         '  --fetch-options <json>         Options to forward to fetch',
       )
       console.error(
         '  --format, -f <format>          Output format (header, raw, json, csp-only)',
       )
-      console.error('\nExample: csp-generator https://example.com --format json')
+      console.error(
+        '\nExample: csp-generator https://example.com --format json',
+      )
       process.exit(1)
     }
 

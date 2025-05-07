@@ -161,7 +161,7 @@ export class SecureCSPGenerator {
     try {
       // Get the response text directly
       this.html = await response.text()
-      
+
       // Check size after getting text
       if (maxBodySize && this.html.length > maxBodySize) {
         ac.abort()

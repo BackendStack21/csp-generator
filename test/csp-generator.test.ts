@@ -126,7 +126,10 @@ describe('SecureCSPGenerator', () => {
           originalSetTimeout(fn, ms),
         )
         clearTimeoutSpy = mock((id?: number) => originalClearTimeout(id))
-        global.setTimeout = Object.assign(setTimeoutSpy, {}) as unknown as typeof setTimeout
+        global.setTimeout = Object.assign(
+          setTimeoutSpy,
+          {},
+        ) as unknown as typeof setTimeout
         global.clearTimeout = clearTimeoutSpy as unknown as typeof clearTimeout
       })
 
@@ -429,7 +432,8 @@ describe('SecureCSPGenerator', () => {
 
   describe('nonce functionality', () => {
     test('should generate nonce by default', async () => {
-      const html = '<html><body><script>console.log("test");</script></body></html>'
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
       mockFetchResponse = new Response(html, {
         status: 200,
         headers: {'content-type': 'text/html'},
@@ -444,7 +448,8 @@ describe('SecureCSPGenerator', () => {
     })
 
     test('should use custom nonce when provided', async () => {
-      const html = '<html><body><script>console.log("test");</script></body></html>'
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
       mockFetchResponse = new Response(html, {
         status: 200,
         headers: {'content-type': 'text/html'},
@@ -462,7 +467,8 @@ describe('SecureCSPGenerator', () => {
     })
 
     test('should not include nonce when useNonce is false', async () => {
-      const html = '<html><body><script>console.log("test");</script></body></html>'
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
       mockFetchResponse = new Response(html, {
         status: 200,
         headers: {'content-type': 'text/html'},
@@ -479,8 +485,9 @@ describe('SecureCSPGenerator', () => {
     })
 
     test('should generate different nonces for different instances', async () => {
-      const html = '<html><body><script>console.log("test");</script></body></html>'
-      
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
+
       // First generator instance
       const generator1 = new SecureCSPGenerator('https://example.com')
       mockFetchResponse = new Response(html, {
