@@ -59,7 +59,8 @@ csp-generator <url> [options]
 | `--allow-unsafe-eval` | boolean | false | Add 'unsafe-eval' to 'script-src' |
 | `--require-trusted-types` | boolean | false | Add "require-trusted-types-for 'script'" to the CSP |
 | `--use-strict-dynamic` | boolean | false | Add 'strict-dynamic' to script-src |
-| `--use-nonce` | boolean | false | Generate and use nonces for inline scripts |
+| `--use-nonce` | boolean | true | Generate and use a random nonce for inline scripts (recommended) |
+| `--custom-nonce` | string |  | Use a custom nonce value instead of a random one |
 | `--use-hashes` | boolean | false | Generate hashes for inline content |
 | `--upgrade-insecure-requests` | boolean | true | Force HTTPS upgrades |
 | `--block-mixed-content` | boolean | true | Block mixed content |
@@ -76,6 +77,16 @@ csp-generator <url> [options]
 Generate CSP with default settings:
 ```bash
 csp-generator https://example.com
+```
+
+Use a custom nonce:
+```bash
+csp-generator https://example.com --custom-nonce my-custom-nonce
+```
+
+Or with environment variable:
+```bash
+CSP_CUSTOM_NONCE=my-custom-nonce csp-generator https://example.com
 ```
 
 Enable unsafe inline styles and strict dynamic:
@@ -174,7 +185,8 @@ The browser version provides the same functionality as the CLI but uses native b
 ### Security Options
 
 - `CSP_USE_STRICT_DYNAMIC`: Add 'strict-dynamic' to script-src (default: false)
-- `CSP_USE_NONCE`: Generate and use nonces for inline scripts (default: false)
+- `CSP_USE_NONCE`: Generate and use nonces for inline scripts (default: true)
+- `CSP_CUSTOM_NONCE`: Use a custom nonce value instead of a random one
 - `CSP_USE_HASHES`: Generate hashes for inline content (default: false)
 - `CSP_UPGRADE_INSECURE_REQUESTS`: Force HTTPS upgrades (default: true)
 - `CSP_BLOCK_MIXED_CONTENT`: Block mixed content (default: true)
