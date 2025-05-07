@@ -22,10 +22,6 @@ const mockGenerator = mock(() => ({
   generate: mockGenerate,
 }))
 
-mock.module('../src/csp-generator', () => ({
-  SecureCSPGenerator: mockGenerator,
-}))
-
 describe('CLI', () => {
   let originalProcessArgv: string[]
   let originalProcessEnv: NodeJS.ProcessEnv
@@ -354,6 +350,15 @@ describe('CLI', () => {
   })
 
   describe('main', () => {
+    beforeEach(() => {
+      mock.module('../src/csp-generator', () => ({
+        SecureCSPGenerator: mockGenerator,
+      }))
+    })
+    afterEach(() => {
+      mock.restore()
+    })
+
     test('should exit with error when no URL provided', async () => {
       process.argv = ['node', 'cli.ts']
       process.env = {}
