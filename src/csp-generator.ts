@@ -50,6 +50,7 @@ export class SecureCSPGenerator {
   private detectedInlineScript = false
   private detectedInlineStyle = false
   private detectedEval = false
+  private nonce: string = ''
 
   /**
    * @param inputUrl - URL of the page to analyze (must be non-empty)
@@ -74,7 +75,12 @@ export class SecureCSPGenerator {
       timeoutMs = 8_000,
       logger = console,
       requireTrustedTypes = false,
+      useNonce = true,
+      customNonce = '',
     } = opts
+
+    // Generate or use custom nonce
+    this.nonce = customNonce || (useNonce ? this.generateNonce() : '')
 
     // Enforce HTTPS unless overridden
     if (!allowHttp && this.url.protocol !== 'https:') {
@@ -112,6 +118,16 @@ export class SecureCSPGenerator {
   }
 
   /**
+   * Generates a cryptographically secure random nonce.
+   * @returns A base64-encoded random string suitable for CSP nonces
+   */
+  private generateNonce(): string {
+    const buffer = new Uint8Array(16)
+    crypto.getRandomValues(buffer)
+    return Buffer.from(buffer).toString('base64')
+  }
+
+  /**
    * Downloads HTML via fetch, respecting timeouts and size limits.
    * @throws Error if HTTP status not OK, type mismatch, or size exceeded
    */
@@ -142,25 +158,19 @@ export class SecureCSPGenerator {
       throw new Error('Response too large – aborting')
     }
 
-    // Stream response body to string
-    const reader = response.body?.getReader()
-    if (!reader) throw new Error('Failed to read response body')
+    try {
+      // Get the response text directly
+      this.html = await response.text()
 
-    const chunks: Uint8Array[] = []
-    let received = 0
-    while (true) {
-      const {done, value} = await reader.read()
-      if (done) break
-      if (value) {
-        received += value.byteLength
-        if (maxBodySize && received > maxBodySize) {
-          ac.abort()
-          throw new Error('Response exceeded maxBodySize')
-        }
-        chunks.push(value)
+      // Check size after getting text
+      if (maxBodySize && this.html.length > maxBodySize) {
+        ac.abort()
+        throw new Error('Response exceeded maxBodySize')
       }
+    } catch (err) {
+      ac.abort()
+      throw err
     }
-    this.html = Buffer.concat(chunks).toString('utf8')
   }
 
   /**
@@ -269,6 +279,20 @@ export class SecureCSPGenerator {
       await this.extractCssUrls(styleEl.textContent || '', 'style-src')
     }
 
+    // Extract base URI
+    let baseUriSet = false
+    const baseEl = doc.querySelector('base[href]')
+    if (baseEl) {
+      const baseHref = baseEl.getAttribute('href')
+      if (baseHref) {
+        await this.resolveAndAdd('base-uri', baseHref)
+        baseUriSet = true
+      }
+    }
+    if (!baseUriSet) {
+      this.ensureSet('base-uri').add("'self'")
+    }
+
     // Inline scripts hashing and nonce/integrity reuse
     for (const scr of Array.from(doc.querySelectorAll('script'))) {
       if (scr.hasAttribute('src')) continue
@@ -325,6 +349,18 @@ export class SecureCSPGenerator {
   public async generate(): Promise<string> {
     await this.fetchHtml()
     await this.parse()
+
+    // Add nonce to script-src if enabled
+    if (this.nonce) {
+      this.ensureSet('script-src').add(`'nonce-${this.nonce}'`)
+      this.ensureSet('script-src').add("'strict-dynamic'")
+    }
+
+    // Always add 'unsafe-inline' if 'strict-dynamic' is present (for backward compatibility)
+    const scriptSrc = this.sources.get('script-src')
+    if (scriptSrc && scriptSrc.has("'strict-dynamic'")) {
+      scriptSrc.add("'unsafe-inline'")
+    }
 
     // Conditionally allow unsafe directives
     if (this.detectedInlineScript && this.opts.allowUnsafeInlineScript) {

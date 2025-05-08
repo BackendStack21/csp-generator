@@ -119,6 +119,11 @@ export interface SecureCSPGeneratorOptions {
   useNonce?: boolean
 
   /**
+   * Custom nonce value to use instead of generating one
+   */
+  customNonce?: string
+
+  /**
    * If true, generates and adds hashes for inline scripts
    */
   useHashes?: boolean

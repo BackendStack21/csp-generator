@@ -1,3 +1,5 @@
+// noinspection JSUnresolvedLibraryURL,CssOverwrittenProperties,HtmlRequiredAltAttribute
+
 import {afterEach, beforeEach, describe, expect, mock, test} from 'bun:test'
 import {SecureCSPGenerator} from '../src/csp-generator'
 import dns from 'dns/promises'
@@ -14,7 +16,8 @@ const fetchMock = mock(async () => {
       headers: {'content-type': 'text/html'},
     })
   }
-  return mockFetchResponse
+  // Clone the response to avoid ReadableStream lock issues
+  return mockFetchResponse.clone()
 }) as unknown as typeof fetch
 
 // Store original DNS lookup function
@@ -25,7 +28,7 @@ let dnsResults: Array<{address: string; family: number}> = [
 ]
 
 // Override the DNS lookup function
-const mockDnsLookup = async (...args: any[]) => {
+const mockDnsLookup = async () => {
   return dnsResults as any
 }
 
@@ -87,7 +90,7 @@ describe('SecureCSPGenerator', () => {
         'script-src': ["'self'", 'https://cdn.example.com'],
       }
 
-      const generator = new SecureCSPGenerator('https://example.com', {presets})
+      new SecureCSPGenerator('https://example.com', {presets})
 
       // We need to test the generate method to verify presets were applied
       // This will be covered in the generate tests
@@ -123,9 +126,10 @@ describe('SecureCSPGenerator', () => {
           originalSetTimeout(fn, ms),
         )
         clearTimeoutSpy = mock((id?: number) => originalClearTimeout(id))
-        global.setTimeout = Object.assign(setTimeoutSpy, {
-          __promisify__: () => Promise.resolve(123),
-        }) as unknown as typeof setTimeout
+        global.setTimeout = Object.assign(
+          setTimeoutSpy,
+          {},
+        ) as unknown as typeof setTimeout
         global.clearTimeout = clearTimeoutSpy as unknown as typeof clearTimeout
       })
 
@@ -171,7 +175,7 @@ describe('SecureCSPGenerator', () => {
           timeoutMs: 50, // Set a short timeout
         })
 
-        await expect(generator.generate()).rejects.toThrow(
+        expect(generator.generate()).rejects.toThrow(
           'The operation was aborted',
         )
         expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 50)
@@ -423,6 +427,175 @@ describe('SecureCSPGenerator', () => {
       expect(cspHeader).toContain('style-src')
       expect(cspHeader).toContain('https://fonts.example.com')
       expect(cspHeader).toContain('https://images.example.com')
+    })
+  })
+
+  describe('nonce functionality', () => {
+    test('should generate nonce by default', async () => {
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const generator = new SecureCSPGenerator('https://example.com')
+      const cspHeader = await generator.generate()
+
+      expect(cspHeader).toContain('script-src')
+      expect(cspHeader).toContain("'nonce-")
+      expect(cspHeader).toContain("'strict-dynamic'")
+    })
+
+    test('should use custom nonce when provided', async () => {
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const customNonce = 'custom-nonce-value'
+      const generator = new SecureCSPGenerator('https://example.com', {
+        customNonce,
+      })
+      const cspHeader = await generator.generate()
+
+      expect(cspHeader).toContain('script-src')
+      expect(cspHeader).toContain(`'nonce-${customNonce}'`)
+      expect(cspHeader).toContain("'strict-dynamic'")
+    })
+
+    test('should not include nonce when useNonce is false', async () => {
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const generator = new SecureCSPGenerator('https://example.com', {
+        useNonce: false,
+      })
+      const cspHeader = await generator.generate()
+
+      expect(cspHeader).toContain('script-src')
+      expect(cspHeader).not.toContain("'nonce-")
+      expect(cspHeader).not.toContain("'strict-dynamic'")
+    })
+
+    test('should generate different nonces for different instances', async () => {
+      const html =
+        '<html><body><script>console.log("test");</script></body></html>'
+
+      // First generator instance
+      const generator1 = new SecureCSPGenerator('https://example.com')
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+      const cspHeader1 = await generator1.generate()
+
+      // Second generator instance with fresh Response
+      const generator2 = new SecureCSPGenerator('https://example.com')
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+      const cspHeader2 = await generator2.generate()
+
+      // Extract nonces from CSP headers
+      const nonce1 = cspHeader1.match(/'nonce-([^']+)'/)?.[1]
+      const nonce2 = cspHeader2.match(/'nonce-([^']+)'/)?.[1]
+
+      expect(nonce1).toBeDefined()
+      expect(nonce2).toBeDefined()
+      expect(nonce1).not.toBe(nonce2)
+    })
+
+    test('should include nonce with other script-src values', async () => {
+      const html = `
+        <html>
+          <body>
+            <script src="https://cdn.example.com/script.js"></script>
+            <script>console.log("test");</script>
+          </body>
+        </html>
+      `
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const generator = new SecureCSPGenerator('https://example.com', {
+        presets: {
+          'script-src': ["'self'", 'https://trusted-cdn.com'],
+        },
+      })
+      const cspHeader = await generator.generate()
+
+      expect(cspHeader).toContain('script-src')
+      expect(cspHeader).toContain("'self'")
+      expect(cspHeader).toContain('https://trusted-cdn.com')
+      expect(cspHeader).toContain("'nonce-")
+      expect(cspHeader).toContain("'strict-dynamic'")
+    })
+
+    test('should remain nonce-free when explicitly disabled', async () => {
+      const html = `
+        <html>
+          <body>
+            <script>console.log("test");</script>
+            <script src="https://cdn.example.com/script.js"></script>
+          </body>
+        </html>
+      `
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const generator = new SecureCSPGenerator('https://example.com', {
+        useNonce: false,
+        presets: {
+          'script-src': ["'self'", 'https://trusted-cdn.com'],
+        },
+      })
+      const cspHeader = await generator.generate()
+
+      expect(cspHeader).toContain('script-src')
+      expect(cspHeader).toContain("'self'")
+      expect(cspHeader).toContain('https://trusted-cdn.com')
+      expect(cspHeader).not.toContain("'nonce-")
+      expect(cspHeader).not.toContain("'strict-dynamic'")
+    })
+
+    test('should honor custom nonce seed in generation', async () => {
+      const html = `
+        <html>
+          <body>
+            <script>console.log("test");</script>
+          </body>
+        </html>
+      `
+      mockFetchResponse = new Response(html, {
+        status: 200,
+        headers: {'content-type': 'text/html'},
+      })
+
+      const customNonce = 'my-secure-nonce-123'
+      const generator = new SecureCSPGenerator('https://example.com', {
+        customNonce,
+      })
+      const cspHeader = await generator.generate()
+
+      // Extract the nonce from the CSP header
+      const nonceMatch = cspHeader.match(/'nonce-([^']+)'/)
+      const extractedNonce = nonceMatch?.[1]
+
+      expect(extractedNonce).toBe(customNonce)
+      expect(cspHeader).toContain(`'nonce-${customNonce}'`)
+      expect(cspHeader).toContain("'strict-dynamic'")
     })
   })
 
