@@ -1,20 +1,21 @@
 {
   "name": "csp-policy-gen",
   "private": false,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A package to generate Content Security Policy (CSP) headers.",
   "type": "module",
   "main": "./dist/csp-generator.js",
   "browser": "./dist/csp-generator.browser.js",
   "exports": {
     ".": {
-      "import": {
-        "node": "./dist/csp-generator.js",
-        "browser": "./dist/csp-generator.browser.js",
-        "default": "./dist/csp-generator.js"
-      }
+      "import": "./dist/csp-generator.js",
+      "require": "./dist/csp-generator.js",
+      "default": "./dist/csp-generator.js"
     },
-    "./browser": "./dist/csp-generator.browser.js"
+    "./browser": {
+      "import": "./dist/csp-generator.browser.js",
+      "default": "./dist/csp-generator.browser.js"
+    }
   },
   "bin": {
     "csp-generator": "./dist/cli.js"
