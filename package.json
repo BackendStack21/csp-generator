@@ -1,7 +1,7 @@
 {
   "name": "csp-generator",
   "private": false,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A Bun package to generate Content Security Policy (CSP) headers.",
   "type": "module",
   "main": "./dist/csp-generator.js",
@@ -31,7 +31,8 @@
     "prepublishOnly": "bun run build",
     "test": "bun test",
     "lint": "npx prettier --check **/*.ts",
-    "format": "prettier --write **/*.ts"
+    "format": "prettier --write **/*.ts",
+    "deploy": "bun run build && bun publish"
   },
   "author": "Rolando Santamaria Maso <kyberneees@gmail.com>",
   "keywords": [
