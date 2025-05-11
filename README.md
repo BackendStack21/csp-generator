@@ -2,6 +2,8 @@
 
 A robust Content Security Policy (CSP) generator that works in both Node.js and browser environments. This tool analyzes HTML content and generates appropriate CSP headers to enhance your application's security.
 
+---
+
 ## Requirements
 
 - [Bun](https://bun.sh/) - A modern JavaScript runtime that is fast and easy to use.
@@ -40,6 +42,45 @@ CSP_REQUIRE_TRUSTED_TYPES=true \
 csp-generator
 ```
 
+---
+
+## Importing in Node and Browser
+
+- **Node.js:**
+  ```js
+  import {SecureCSPGenerator} from 'csp-generator'
+  ```
+- **Browser:**
+  ```js
+  import {CSPGenerator} from 'csp-generator/browser'
+  ```
+
+---
+
+## TypeScript Support
+
+This package ships with full TypeScript type definitions. Types are automatically included when you import from `csp-generator` in a TypeScript project.
+
+If you need to import specific types:
+
+```ts
+import type {SecureCSPGeneratorOptions} from 'csp-generator/dist/types'
+```
+
+---
+
+## Trusted Types
+
+Trusted Types is a web platform security standard that helps prevent DOM-based XSS by locking down injection sinks. When you enable `--require-trusted-types` or set `CSP_REQUIRE_TRUSTED_TYPES=true`, the generated CSP will include:
+
+```
+require-trusted-types-for 'script'
+```
+
+This instructs browsers to only allow script-creating APIs to accept Trusted Types objects, mitigating XSS risks.
+
+---
+
 ## CLI Parameters
 
 The CSP generator supports the following command-line parameters:
@@ -50,46 +91,50 @@ csp-generator <url> [options]
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--allow-http` | boolean | false | Allow HTTP URLs in addition to HTTPS |
-| `--allow-private-origins` | boolean | false | Permit private IP / localhost origins |
-| `--allow-unsafe-inline-script` | boolean | false | Add 'unsafe-inline' to 'script-src' when inline scripts detected |
-| `--allow-unsafe-inline-style` | boolean | false | Add 'unsafe-inline' to 'style-src' when inline styles detected |
-| `--allow-unsafe-eval` | boolean | false | Add 'unsafe-eval' to 'script-src' |
-| `--require-trusted-types` | boolean | false | Add "require-trusted-types-for 'script'" to the CSP |
-| `--use-strict-dynamic` | boolean | false | Add 'strict-dynamic' to script-src |
-| `--use-nonce` | boolean | true | Generate and use a random nonce for inline scripts (recommended) |
-| `--custom-nonce` | string |  | Use a custom nonce value instead of a random one |
-| `--use-hashes` | boolean | false | Generate hashes for inline content |
-| `--upgrade-insecure-requests` | boolean | true | Force HTTPS upgrades |
-| `--block-mixed-content` | boolean | true | Block mixed content |
-| `--restrict-framing` | boolean | true | Add frame-ancestors 'none' |
-| `--use-sandbox` | boolean | false | Add sandbox directive with safe defaults |
-| `--max-body-size` | number | 0 | Maximum allowed bytes for HTML download (0 = unlimited) |
-| `--timeout-ms` | number | 8000 | Timeout for fetch requests in milliseconds |
-| `--format`, `-f` | string | 'header' | Output format: header, raw, json, csp-only |
-| `--presets` | string | - | User-provided source lists (format: "directive1:value1,value2;directive2:value3,value4") |
-| `--fetch-options` | JSON | - | Custom fetch options as JSON string |
+| Option                         | Type    | Default  | Description                                                                              |
+| ------------------------------ | ------- | -------- | ---------------------------------------------------------------------------------------- |
+| `--allow-http`                 | boolean | false    | Allow HTTP URLs in addition to HTTPS                                                     |
+| `--allow-private-origins`      | boolean | false    | Permit private IP / localhost origins                                                    |
+| `--allow-unsafe-inline-script` | boolean | false    | Add 'unsafe-inline' to 'script-src' when inline scripts detected                         |
+| `--allow-unsafe-inline-style`  | boolean | false    | Add 'unsafe-inline' to 'style-src' when inline styles detected                           |
+| `--allow-unsafe-eval`          | boolean | false    | Add 'unsafe-eval' to 'script-src'                                                        |
+| `--require-trusted-types`      | boolean | false    | Add "require-trusted-types-for 'script'" to the CSP                                      |
+| `--use-strict-dynamic`         | boolean | false    | Add 'strict-dynamic' to script-src                                                       |
+| `--use-nonce`                  | boolean | true     | Generate and use a random nonce for inline scripts (recommended)                         |
+| `--custom-nonce`               | string  |          | Use a custom nonce value instead of a random one                                         |
+| `--use-hashes`                 | boolean | false    | Generate hashes for inline content                                                       |
+| `--upgrade-insecure-requests`  | boolean | true     | Force HTTPS upgrades                                                                     |
+| `--block-mixed-content`        | boolean | true     | Block mixed content                                                                      |
+| `--restrict-framing`           | boolean | true     | Add frame-ancestors 'none'                                                               |
+| `--use-sandbox`                | boolean | false    | Add sandbox directive with safe defaults                                                 |
+| `--max-body-size`              | number  | 0        | Maximum allowed bytes for HTML download (0 = unlimited)                                  |
+| `--timeout-ms`                 | number  | 8000     | Timeout for fetch requests in milliseconds                                               |
+| `--format`, `-f`               | string  | 'header' | Output format: header, raw, json, csp-only                                               |
+| `--presets`                    | string  | -        | User-provided source lists (format: "directive1:value1,value2;directive2:value3,value4") |
+| `--fetch-options`              | JSON    | -        | Custom fetch options as JSON string                                                      |
 
 ### Examples
 
 Generate CSP with default settings:
+
 ```bash
 csp-generator https://example.com
 ```
 
 Use a custom nonce:
+
 ```bash
 csp-generator https://example.com --custom-nonce my-custom-nonce
 ```
 
 Or with environment variable:
+
 ```bash
 CSP_CUSTOM_NONCE=my-custom-nonce csp-generator https://example.com
 ```
 
 Enable unsafe inline styles and strict dynamic:
+
 ```bash
 csp-generator https://example.com \
   --allow-unsafe-inline-style true \
@@ -97,15 +142,19 @@ csp-generator https://example.com \
 ```
 
 Output as JSON with custom presets:
+
 ```bash
 csp-generator https://example.com \
   --format json \
   --presets "script-src:https://cdn.example.com;connect-src:https://api.example.com"
 ```
 
+---
+
 ## Environment Variables Configuration
 
 The CSP generator uses Bun's built-in support for environment variables. It automatically loads variables from:
+
 - `.env`
 - `.env.local`
 - `.env.${NODE_ENV}` (e.g., `.env.development`, `.env.production`)
@@ -114,11 +163,13 @@ The CSP generator uses Bun's built-in support for environment variables. It auto
 To get started:
 
 1. Copy the example environment file:
+
 ```bash
 cp .env.example .env
 ```
 
 2. Edit the `.env` file with your desired configuration:
+
 ```env
 # Required (if not using command-line argument)
 CSP_URL=https://your-site.com
@@ -129,11 +180,13 @@ CSP_USE_STRICT_DYNAMIC=true
 ```
 
 3. Run the generator:
+
 ```bash
 csp-generator
 ```
 
 All command-line options have equivalent environment variables. This is particularly useful for:
+
 - CI/CD pipelines
 - Docker environments
 - Development configurations
@@ -141,31 +194,36 @@ All command-line options have equivalent environment variables. This is particul
 
 > Note: No additional packages are needed for .env support as it's built into Bun.
 
+---
+
 ## Browser Usage
 
 You can also use the CSP generator directly in your browser:
 
 ```html
 <script type="module">
-  import { CSPGenerator } from 'csp-generator/browser';
+  import {CSPGenerator} from 'csp-generator/browser'
 
   // Create a new instance
   const generator = new CSPGenerator({
     // Optional configuration
     allowUnsafeInlineStyle: true,
-    useStrictDynamic: true
-  });
+    useStrictDynamic: true,
+  })
 
   // Generate CSP for a URL
-  const result = await generator.generate('https://example.com');
-  console.log(result);
+  const result = await generator.generate('https://example.com')
+  console.log(result)
 </script>
 ```
 
 The browser version provides the same functionality as the CLI but uses native browser APIs for better performance. It's particularly useful for:
+
 - Generating CSPs for single-page applications
 - Testing CSPs against your current page
 - Integrating CSP generation into your web development workflow
+
+---
 
 ## Environment Variables
 
@@ -217,34 +275,41 @@ The browser version provides the same functionality as the CLI but uses native b
   - `json`: Outputs JSON format: `{"Content-Security-Policy":"[policy]"}`
   - `csp-only`: Outputs just the CSP directives
 
+---
+
 ## Features
 
 The generator automatically detects and includes various resource types:
 
 1. **Scripts**
+
    - External script sources
    - Inline scripts (with hash/nonce)
    - Worker scripts
    - Module scripts
 
 2. **Styles**
+
    - External stylesheets
    - Inline styles
    - CSS @import rules
    - CSS url() functions
 
 3. **Fonts**
+
    - Font files from @font-face rules
    - Preloaded fonts
    - Google Fonts and other CDNs
 
 4. **Network**
+
    - Fetch API calls
    - WebSocket connections
    - EventSource connections
    - XMLHttpRequest (legacy)
 
 5. **Media**
+
    - Images
    - Videos
    - Audio
@@ -254,6 +319,20 @@ The generator automatically detects and includes various resource types:
    - iframes
    - frame-ancestors
    - Sandbox controls
+
+---
+
+## Error Handling and Security
+
+- The generator will throw errors for:
+  - Non-OK HTTP responses
+  - Content-Type mismatches
+  - Exceeding the maximum body size
+  - Insecure or private origins (unless explicitly allowed)
+- SSRF protection is enabled by default. Use `--allow-private-origins` to override.
+- Only HTTPS URLs are allowed unless `--allow-http` is set.
+
+---
 
 ## Notes
 
@@ -265,6 +344,8 @@ The generator automatically detects and includes various resource types:
 - Font sources are automatically detected from @font-face rules
 - WebSocket URLs are detected in script content
 - The browser version uses native APIs for better performance
+
+---
 
 ## Development
 
@@ -286,7 +367,12 @@ bun run format
 
 # Try the CLI locally during development
 bun src/cli.ts https://example.com
+
+# Check type definitions
+bun run build:types
 ```
+
+---
 
 ## License
 

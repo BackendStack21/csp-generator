@@ -10,9 +10,12 @@
 
     // Bundler mode
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "noEmit": false, // <-- Change to false to allow emitting files
+    "declaration": true, // <-- Emit .d.ts files
+    "declarationDir": "./dist", // <-- Output types to dist
+    "declarationMap": false, // (optional) Enable declaration maps
 
     // Best practices
     "strict": true,
@@ -24,5 +27,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["test", "demos", "**/*.test.ts"]
 }

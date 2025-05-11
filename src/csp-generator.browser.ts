@@ -16,7 +16,7 @@ export class SecureCSPGenerator {
   /** The target URL to analyze. */
   readonly url: URL
 
-  private readonly opts: Required<SecureCSPGeneratorOptions>
+  private readonly opts: SecureCSPGeneratorOptions
   private readonly logger: Logger
   private html: string = ''
   private readonly sources = new Map<DirectiveName, Set<string>>()
@@ -141,7 +141,7 @@ export class SecureCSPGenerator {
     const response = await fetch(this.url, {
       ...fetchOptions,
       signal: ac.signal,
-      headers: {accept: 'text/html', ...fetchOptions.headers},
+      headers: {accept: 'text/html', ...fetchOptions!.headers},
     }).finally(() => clearTimeout(timer))
 
     if (!response.ok) {
