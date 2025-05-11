@@ -1,4 +1,4 @@
-# CSP Generator
+# CSP Policy Gen
 
 A robust Content Security Policy (CSP) generator that works in both Node.js and browser environments. This tool analyzes HTML content and generates appropriate CSP headers to enhance your application's security.
 
@@ -12,10 +12,10 @@ A robust Content Security Policy (CSP) generator that works in both Node.js and 
 
 ```bash
 # Install globally
-bun install -g csp-generator
+bun install -g csp-policy-gen
 
 # Or install locally in your project
-bun add csp-generator
+bun add csp-policy-gen
 ```
 
 ## Usage
@@ -48,23 +48,23 @@ csp-generator
 
 - **Node.js:**
   ```js
-  import {SecureCSPGenerator} from 'csp-generator'
+  import {SecureCSPGenerator} from 'csp-policy-gen'
   ```
 - **Browser:**
   ```js
-  import {CSPGenerator} from 'csp-generator/browser'
+  import {CSPGenerator} from 'csp-policy-gen/browser'
   ```
 
 ---
 
 ## TypeScript Support
 
-This package ships with full TypeScript type definitions. Types are automatically included when you import from `csp-generator` in a TypeScript project.
+This package ships with full TypeScript type definitions. Types are automatically included when you import from `csp-policy-gen` in a TypeScript project.
 
 If you need to import specific types:
 
 ```ts
-import type {SecureCSPGeneratorOptions} from 'csp-generator/dist/types'
+import type {SecureCSPGeneratorOptions} from 'csp-policy-gen/dist/types'
 ```
 
 ---
@@ -202,7 +202,7 @@ You can also use the CSP generator directly in your browser:
 
 ```html
 <script type="module">
-  import {CSPGenerator} from 'csp-generator/browser'
+  import {CSPGenerator} from 'csp-policy-gen/browser'
 
   // Create a new instance
   const generator = new CSPGenerator({

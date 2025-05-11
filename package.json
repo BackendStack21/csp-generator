@@ -1,8 +1,8 @@
 {
-  "name": "csp-generator",
+  "name": "csp-policy-gen",
   "private": false,
   "version": "1.0.0",
-  "description": "A Bun package to generate Content Security Policy (CSP) headers.",
+  "description": "A package to generate Content Security Policy (CSP) headers.",
   "type": "module",
   "main": "./dist/csp-generator.js",
   "browser": "./dist/csp-generator.browser.js",
@@ -58,7 +58,7 @@
     "jsdom": "^26.1.0"
   },
   "bugs": {
-    "url": "https://github.com/BackendStack21/idempotence-middleware/issues"
+    "url": "https://github.com/BackendStack21/csp-generator/issues"
   },
-  "homepage": "https://github.com/BackendStack21/idempotence-middleware#readme"
+  "homepage": "https://github.com/BackendStack21/csp-generator#readme"
 }
