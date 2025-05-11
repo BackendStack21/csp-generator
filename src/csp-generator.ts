@@ -35,6 +35,8 @@ import {isIP} from 'net'
 import dns from 'dns/promises'
 import type {DirectiveName, Logger, SecureCSPGeneratorOptions} from './types.ts'
 
+export type {SecureCSPGeneratorOptions}
+
 /**
  * SecureCSPGenerator:
  * Fetches an HTML page, extracts resource origins,
