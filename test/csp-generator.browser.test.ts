@@ -2,7 +2,6 @@
 
 import {describe, test, expect, beforeEach, mock, afterEach} from 'bun:test'
 import {SecureCSPGenerator} from '../src/csp-generator.browser'
-import {JSDOM} from 'jsdom'
 
 // Mock fetch
 const originalFetch = global.fetch
@@ -21,32 +20,12 @@ const fetchMock = mock(async () => {
 
 describe('SecureCSPGenerator (browser)', () => {
   let mockLogger: any
-  let dom: JSDOM
+  let dom: any
 
   beforeEach(() => {
     // Reset mock fetch response
     mockFetchResponse = null
     global.fetch = fetchMock
-
-    // Setup jsdom with a base URL
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
-      url: 'https://example.com',
-      contentType: 'text/html',
-      includeNodeLocations: true,
-      runScripts: 'dangerously',
-      resources: 'usable',
-    })
-
-    // Setup global browser APIs
-    global.DOMParser = dom.window.DOMParser
-    global.HTMLElement = dom.window.HTMLElement
-    global.HTMLScriptElement = dom.window.HTMLScriptElement
-    global.HTMLStyleElement = dom.window.HTMLStyleElement
-    global.HTMLLinkElement = dom.window.HTMLLinkElement
-    global.HTMLImageElement = dom.window.HTMLImageElement
-    global.HTMLIFrameElement = dom.window.HTMLIFrameElement
-    global.HTMLFormElement = dom.window.HTMLFormElement
-    global.HTMLBaseElement = dom.window.HTMLBaseElement
 
     // Create a mock logger
     mockLogger = {

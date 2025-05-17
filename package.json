@@ -30,7 +30,7 @@
     "build:browser": "bun build ./src/csp-generator.browser.ts --outdir ./dist --target browser --minify --outfile csp-generator.browser.js --format esm",
     "build:types": "tsc --emitDeclarationOnly --declaration --project tsconfig.json",
     "prepublishOnly": "bun run build",
-    "test": "bun test",
+    "test": "bun test --coverage",
     "lint": "npx prettier --check **/*.ts",
     "format": "prettier --write **/*.ts",
     "deploy": "bun run build && bun publish"
@@ -48,15 +48,14 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/content-type": "^1.1.8",
-    "@types/jsdom": "^21.1.7",
     "prettier": "^3.5.3"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "content-type": "^1.0.5",
-    "jsdom": "^26.1.0"
+    "cheerio": "^1.0.0",
+    "content-type": "^1.0.5"
   },
   "bugs": {
     "url": "https://github.com/BackendStack21/csp-generator/issues"
