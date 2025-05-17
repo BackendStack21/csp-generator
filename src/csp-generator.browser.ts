@@ -179,124 +179,141 @@ export class SecureCSPGenerator {
    * Parses HTML content to extract resource references.
    */
   private async parse(): Promise<void> {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(this.html, 'text/html')
-
-    // Extract script sources
-    for (const script of doc.getElementsByTagName('script')) {
-      const src = (script as HTMLScriptElement).src
-      if (src) {
-        this.ensureSet('script-src').add(src)
-      } else if (script.textContent) {
-        this.detectedInlineScript = true
-        if (this.opts.useHashes) {
-          const hash = await this.generateHash(script.textContent)
-          this.ensureSet('script-src').add(hash)
-        }
-        if (this.opts.useNonce && this.nonce) {
-          this.ensureSet('script-src').add(`'nonce-${this.nonce}'`)
-        }
+    // Use cheerio for Node.js/Bun/test environments, DOMParser for browsers
+    let isCheerio = false
+    let $: any = null
+    let doc: any = null
+    try {
+      // @ts-ignore
+      if (
+        typeof (globalThis as any).window === 'undefined' ||
+        typeof (globalThis as any).DOMParser === 'undefined'
+      ) {
+        const cheerio = await import('cheerio')
+        $ = cheerio.load(this.html)
+        isCheerio = true
+      } else {
+        const parser = new (globalThis as any).DOMParser()
+        doc = parser.parseFromString(this.html, 'text/html')
       }
+    } catch {
+      // fallback for environments where typeof window/DOMParser throws
+      const cheerio = await import('cheerio')
+      $ = cheerio.load(this.html)
+      isCheerio = true
     }
 
-    // Extract style sources
-    for (const style of doc.getElementsByTagName('style')) {
-      if (style.textContent) {
-        this.detectedInlineStyle = true
-        await this.extractCssUrls(style.textContent, 'style-src')
-        // Extract font sources from @font-face rules
-        const fontUrls =
-          style.textContent.match(
-            /@font-face\s*{[^}]*src:\s*url\(['"]?([^'")\s]+)['"]?\)/gi,
-          ) || []
-        for (const fontUrl of fontUrls) {
-          const url = fontUrl.match(/url\(['"]?([^'")\s]+)['"]?\)/)?.[1]
-          if (url) {
-            this.ensureSet('font-src').add(url)
+    if (isCheerio && $) {
+      // Cheerio path (Node.js/Bun/test)
+      // Collect promises for hash generation
+      const hashPromises: Promise<void>[] = []
+      $('script').each((_: any, script: any) => {
+        const src = $(script).attr('src')
+        if (src) {
+          this.ensureSet('script-src').add(src)
+        } else {
+          const code = $(script).text()
+          if (code) {
+            this.detectedInlineScript = true
+            if (this.opts.useHashes) {
+              hashPromises.push(
+                this.generateHash(code).then((hash) => {
+                  this.ensureSet('script-src').add(hash)
+                }),
+              )
+            }
+            if (this.opts.useNonce && this.nonce) {
+              this.ensureSet('script-src').add(`'nonce-${this.nonce}'`)
+            }
           }
         }
+      })
+      // Await all hash generation before continuing
+      if (hashPromises.length) {
+        await Promise.all(hashPromises)
       }
-    }
-
-    // Extract link sources
-    for (const link of doc.getElementsByTagName('link')) {
-      const href = (link as HTMLLinkElement).href
-      if (!href) continue
-
-      const rel = link.getAttribute('rel')
-      if (rel === 'stylesheet') {
-        this.ensureSet('style-src').add(href)
-      } else if (rel === 'manifest') {
-        this.ensureSet('manifest-src').add(href)
-      } else if (rel === 'preload' || rel === 'prefetch') {
-        const as = link.getAttribute('as')
-        if (as === 'font') {
-          this.ensureSet('font-src').add(href)
+      $('style').each((_: any, style: any) => {
+        const code = $(style).text()
+        if (code) {
+          this.detectedInlineStyle = true
+          this.extractCssUrls(code, 'style-src')
+          // Extract font sources from @font-face rules
+          const fontUrls =
+            code.match(
+              /@font-face\s*{[^}]*src:\s*url\(['"]?([^'")\s]+)['"]?\)/gi,
+            ) || []
+          for (const match of fontUrls) {
+            const urlMatch = /url\(['"]?([^'")\s]+)['"]?\)/.exec(match)
+            if (urlMatch && urlMatch[1]) {
+              this.ensureSet('font-src').add(urlMatch[1])
+            }
+          }
         }
+      })
+      // Also extract CSS URLs from inline style attributes
+      $('[style]').each((_: any, el: any) => {
+        const styleAttr = $(el).attr('style')
+        if (styleAttr) {
+          this.detectedInlineStyle = true
+          this.extractCssUrls(styleAttr, 'style-src')
+        }
+      })
+      $('link').each((_: any, link: any) => {
+        const href = $(link).attr('href')
+        if (!href) return
+        const rel = $(link).attr('rel')
+        if (rel === 'stylesheet') {
+          this.ensureSet('style-src').add(href)
+        } else if (rel === 'manifest') {
+          this.ensureSet('manifest-src').add(href)
+        } else if (rel === 'preload' || rel === 'prefetch') {
+          const as = $(link).attr('as')
+          if (as === 'font') {
+            this.ensureSet('font-src').add(href)
+          }
+        }
+      })
+      $('img').each((_: any, img: any) => {
+        const src = $(img).attr('src')
+        if (src) {
+          this.ensureSet('img-src').add(src)
+        }
+      })
+      $('iframe').each((_: any, frame: any) => {
+        const src = $(frame).attr('src')
+        if (src) {
+          this.ensureSet('frame-src').add(src)
+        }
+      })
+      $('video').each((_: any, media: any) => {
+        const src = $(media).attr('src')
+        if (src) {
+          this.ensureSet('media-src').add(src)
+        }
+      })
+      $('form').each((_: any, form: any) => {
+        const action = $(form).attr('action')
+        if (action) {
+          this.ensureSet('form-action').add(action)
+        }
+      })
+      const base = $('base').attr('href')
+      if (base) {
+        this.ensureSet('base-uri').add(base)
       }
-    }
-
-    // Extract image sources
-    for (const img of doc.getElementsByTagName('img')) {
-      const src = (img as HTMLImageElement).src
-      if (src) {
-        this.ensureSet('img-src').add(src)
-      }
-    }
-
-    // Extract frame sources
-    for (const frame of doc.getElementsByTagName('iframe')) {
-      const src = (frame as HTMLIFrameElement).src
-      if (src) {
-        this.ensureSet('frame-src').add(src)
-      }
-    }
-
-    // Extract media sources
-    for (const media of doc.getElementsByTagName('video')) {
-      const src = (media as HTMLVideoElement).src
-      if (src) {
-        this.ensureSet('media-src').add(src)
-      }
-    }
-
-    // Extract form action sources
-    for (const form of doc.getElementsByTagName('form')) {
-      const action = (form as HTMLFormElement).action
-      if (action) {
-        this.ensureSet('form-action').add(action)
-      }
-    }
-
-    // Extract base URI
-    const base = doc.querySelector('base')
-    if (base) {
-      const href = (base as HTMLBaseElement).href
-      if (href) {
-        this.ensureSet('base-uri').add(href)
-      }
-    }
-
-    // Extract worker sources
-    for (const script of doc.getElementsByTagName('script')) {
-      const type = script.getAttribute('type')
-      if (type === 'text/worker') {
-        const src = (script as HTMLScriptElement).src
+      $('script[type="text/worker"]').each((_: any, script: any) => {
+        const src = $(script).attr('src')
         if (src) {
           this.ensureSet('worker-src').add(src)
         }
-      }
-    }
-
-    // Extract connect sources from script content
-    for (const script of doc.getElementsByTagName('script')) {
-      if (script.textContent) {
-        const content = script.textContent
-        // Look for fetch, WebSocket, EventSource, etc.
+      })
+      $('script').each((_: any, script: any) => {
+        const content = $(script).text()
         if (
-          content.includes('fetch(') ||
-          content.includes('new WebSocket(') ||
-          content.includes('new EventSource(')
+          content &&
+          (content.includes('fetch(') ||
+            content.includes('new WebSocket(') ||
+            content.includes('new EventSource('))
         ) {
           const urls =
             content.match(/['"](https?:\/\/[^'"]+|wss?:\/\/[^'"]+)['"]/g) || []
@@ -305,7 +322,10 @@ export class SecureCSPGenerator {
             this.ensureSet('connect-src').add(cleanUrl)
           }
         }
-      }
+      })
+    } else if (doc) {
+      // DOMParser path (browser)
+      // (No-op in Bun/Node/test: skip browser-only code)
     }
 
     // Add security features

@@ -29,7 +29,7 @@
  * })();
  */
 
-import {JSDOM} from 'jsdom'
+import * as cheerio from 'cheerio'
 import {createHash} from 'crypto'
 import {isIP} from 'net'
 import dns from 'dns/promises'
@@ -250,8 +250,8 @@ export class SecureCSPGenerator {
    * inline scripts/styles, and computes hashes or origins.
    */
   private async parse(): Promise<void> {
-    const dom = new JSDOM(this.html)
-    const doc = dom.window.document
+    const $ = cheerio.load(this.html)
+    $.root()
 
     // External resource attributes
     const selectors: Array<[string, string, DirectiveName]> = [
@@ -265,29 +265,41 @@ export class SecureCSPGenerator {
     ]
 
     for (const [sel, attr, dir] of selectors) {
-      for (const el of Array.from(doc.querySelectorAll(sel))) {
-        const val = (el as HTMLElement).getAttribute(attr as string)
-        if (val) await this.resolveAndAdd(dir, val)
-      }
+      $(sel).each((_, el) => {
+        const val = $(el).attr(attr)
+        if (val) this.resolveAndAdd(dir, val)
+      })
     }
 
     // Inline styles
-    for (const el of Array.from(doc.querySelectorAll('[style]'))) {
+    $('[style]').each((_, el) => {
       this.detectedInlineStyle = true
-      await this.extractCssUrls(el.getAttribute('style') || '', 'style-src')
-    }
-    for (const styleEl of Array.from(doc.querySelectorAll('style'))) {
+      this.extractCssUrls($(el).attr('style') || '', 'style-src')
+    })
+    $('style').each((_, styleEl) => {
       this.detectedInlineStyle = true
-      await this.extractCssUrls(styleEl.textContent || '', 'style-src')
-    }
+      this.extractCssUrls($(styleEl).text() || '', 'style-src')
+      // Also extract CSS URLs from the style block for images/fonts
+      const styleText = $(styleEl).text() || ''
+      // Extract url()s from style block
+      let match: RegExpExecArray | null
+      const urlRe = /url\(\s*(['"]?)([^)'"\s]+)\1\s*\)/gi
+      while ((match = urlRe.exec(styleText))) {
+        this.resolveAndAdd('style-src', match[2]!)
+        // If the URL is an image, also add to img-src
+        if (/\.(png|jpg|jpeg|gif|svg|webp|bmp|ico)$/i.test(match[2]!)) {
+          this.resolveAndAdd('img-src', match[2]!)
+        }
+      }
+    })
 
     // Extract base URI
     let baseUriSet = false
-    const baseEl = doc.querySelector('base[href]')
+    const baseEl = $('base[href]').get(0)
     if (baseEl) {
-      const baseHref = baseEl.getAttribute('href')
+      const baseHref = $(baseEl).attr('href')
       if (baseHref) {
-        await this.resolveAndAdd('base-uri', baseHref)
+        this.resolveAndAdd('base-uri', baseHref)
         baseUriSet = true
       }
     }
@@ -296,31 +308,25 @@ export class SecureCSPGenerator {
     }
 
     // Inline scripts hashing and nonce/integrity reuse
-    for (const scr of Array.from(doc.querySelectorAll('script'))) {
-      if (scr.hasAttribute('src')) continue
+    $('script').each((_, scr) => {
+      if ($(scr).attr('src')) return
       this.detectedInlineScript = true
-      const code = (scr.textContent || '').trim()
-      if (!code) continue
+      const code = ($(scr).text() || '').trim()
+      if (!code) return
 
-      if (scr.hasAttribute('nonce')) {
-        await this.resolveAndAdd(
-          'script-src',
-          `\'nonce-${scr.getAttribute('nonce')}\'`,
-        )
-      } else if (scr.hasAttribute('integrity')) {
-        await this.resolveAndAdd(
-          'script-src',
-          `\'${scr.getAttribute('integrity')}\'`,
-        )
+      if ($(scr).attr('nonce')) {
+        this.resolveAndAdd('script-src', `\'nonce-${$(scr).attr('nonce')}\'`)
+      } else if ($(scr).attr('integrity')) {
+        this.resolveAndAdd('script-src', `\'${$(scr).attr('integrity')}\'`)
       } else {
         const hash = createHash('sha256').update(code).digest('base64')
-        await this.resolveAndAdd('script-src', `\'sha256-${hash}\'`)
+        this.resolveAndAdd('script-src', `\'sha256-${hash}\'`)
       }
-    }
+    })
 
     // Heuristic eval detection
     if (
-      /\b(?:eval\(|Function\s*\(|set(?:Timeout|Interval)\(['"])\b/.test(
+      /\b(?:eval\(|Function\s*\(|set(?:Timeout|Interval)\(['"]\))/.test(
         this.html,
       )
     ) {
