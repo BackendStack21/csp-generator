@@ -20,7 +20,6 @@ const fetchMock = mock(async () => {
 
 describe('SecureCSPGenerator (browser)', () => {
   let mockLogger: any
-  let dom: any
 
   beforeEach(() => {
     // Reset mock fetch response
